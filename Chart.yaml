@@ -1,0 +1,15 @@
+apiVersion: v2
+name: monica
+version: 0.1.0
+appVersion: 2.18.0
+description: Huginn is a system for building agents that perform automated tasks for you online. They can read the web, watch for events, and take actions on your behalf. Huginn's Agents create and consume events, propagating them along a directed graph. Think of it as a hackable version of IFTTT or Zapier on your own server. You always know who has your data. You do.
+keywords:
+  - monica
+  - http
+  - crm
+  - application
+home: http://www.monicahq.com/
+icon: http://user-images.githubusercontent.com/61099/37693034-5783b3d6-2c93-11e8-80ea-bd78438dcd51.png
+sources:
+  - https://github.com/monicahq/docker
+type: application

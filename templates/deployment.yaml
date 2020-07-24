@@ -1,0 +1,279 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "monica.fullname" . }}
+  labels:
+    {{- include "monica.labels" . | nindent 4 }}
+spec:
+{{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+{{- end }}
+  selector:
+    matchLabels:
+      {{- include "monica.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        {{- include "monica.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "monica.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: APP_ENV
+              value: {{ .Values.app.environment | quote }}
+            - name: APP_DEBUG
+              value: {{ .Values.app.debug | quote }}
+            {{- if .Values.app.key }}
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "monica.fullname" . }}
+                  key: "app_key"
+            {{- end }}
+            {{- if .Values.hash.salt }}
+            - name: HASH_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "monica.fullname" . }}
+                  key: "hash_salt"
+            {{- end }}
+            - name: HASH_LENGTH
+              value: {{ .Values.hash.length | quote }}
+            - name: APP_URL
+              value: {{ .Values.app.url | quote }}
+            - name: APP_FORCE_URL
+              value: {{ .Values.app.force_url | quote }}
+            - name: DB_CONNECTION
+              value: {{ .Values.db.connection | quote }}
+            - name: DB_HOST
+              value: {{ .Values.db.host | quote}}
+            - name: DB_PORT
+              value: {{ .Values.db.port | quote }}
+            {{- if .Values.db.unix_sock.enabled }}
+            - name: DB_UNIX_SOCKET
+              value: {{ .Values.db.unix_sock.socket | quote}}
+            {{- end}}
+            - name: DB_DATABASE
+              value: {{ .Values.db.database | quote}}
+            - name: DB_USERNAME
+              value: {{ .Values.db.username | quote}}
+            {{- if .Values.db.password }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "monica.fullname" . }}
+                  key: "db_password"
+            {{- end }}
+            {{- if .Values.db.prefix }}
+            - name: DB_PREFIX
+              value: {{ .Values.db.prefix | quote }}
+            {{- end }}
+            - name: DB_TEST_HOST
+              value: {{ .Values.db.test.host | quote }}
+            - name: DB_TEST_DATABASE
+              value: {{ .Values.db.test.database  | quote}}
+            - name: DB_TEST_USERNAME
+              value: {{ .Values.db.test.username | quote }}
+            {{- if .Values.db.test.password }}
+            - name: DB_TEST_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "monica.fullname" . }}
+                  key: "db_test_password"
+            {{- end }}
+            - name: DB_USE_UTF8MB4
+              value: {{ .Values.db.use_utf8MB4 | quote }}
+            - name: MAIL_MAILER
+              value: {{ .Values.mail.mailer | quote }}
+            - name: MAIL_HOST
+              value: {{ .Values.mail.host | quote }}
+            - name: MAIL_PORT
+              value: {{ .Values.mail.port | quote }}
+            {{- if .Values.mail.username }}
+            - name: MAIL_USERNAME
+              value: {{ .Values.mail.username | quote }}
+            {{- end}}
+            {{- if .Values.mail.password }}
+            - name: MAIL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "monica.fullname" . }}
+                  key: "mail_password"
+            {{- end }}
+            {{- if .Values.mail.encryption }}
+            - name: MAIL_ENCRYPTION
+              value: {{ .Values.mail.encryption | quote }}
+            {{- end }}
+            {{- if .Values.mail.from_address }}
+            - name: MAIL_FROM_ADDRESS
+              value: {{ .Values.mail.from_address | quote }}
+            {{- end}}
+            - name: MAIL_FROM_NAME
+              value: {{ .Values.mail.from_name | quote }}
+            {{- if .Values.email_new_users_notification }}
+            - name: APP_EMAIL_NEW_USERS_NOTIFICATION
+              value: {{ .Values.app.email_new_users_notification | quote }}
+            {{- end }}
+            - name: APP_DISABLE_SIGNUP
+              value: {{ .Values.app.disable_signup | quote }}
+            - name: APP_SIGNUP_DOUBLE_OPTIN
+              value: {{ .Values.app.signup_double_opt_in | quote }}
+            {{- if .Values.app.trusted_proxies }}
+            - name: APP_TRUSTED_PROXIES
+              value: {{ .Values.app.trusted_proxies | quote }}
+            {{- end }}
+            - name: APP_TRUSTED_CLOUDFLARE
+              value: {{ .Values.app.trusted_cloudflare | quote }}
+            - name: LOG_CHANNEL
+              value: {{ .Values.log_channel | quote }}
+            {{- if .Values.sentry.support }}
+            - name: SENTRY_SUPPORT
+              value: {{ .Values.sentry.support | quote }}
+            - name: SENTRY_LARAVEL_DSN
+              value: {{ .Values.sentry.laravel_dsn | quote }}
+            {{- end}}
+            - name: CHECK_VERSION
+              value: {{ .Values.check_version | quote }}
+            - name: CACHE_DRIVER
+              value: {{ .Values.cache.driver | quote }}
+            - name: SESSION_DRIVER
+              value: {{ .Values.cache.session_driver | quote }}
+            - name: SESSION_LIFETIME
+              value: {{ .Values.cache.session_lifetime | quote }}
+            - name: QUEUE_CONNECTION
+              value: {{ .Values.cache.queue_connection | quote }}
+            {{- if .Values.cache.redis }}
+            - name: REDIS_HOST
+              value: {{ .Values.redis.host | quote }}
+            {{- end}}
+            - name: DEFAULT_MAX_UPLOAD_SIZE
+              value: {{ .Values.defaults.max_upload | quote }}
+            - name: DEFAULT_MAX_STORAGE_SIZE
+              value: {{ .Values.defaults.max_storage | quote }}
+            - name: DEFAULT_FILESYSTEM
+              value: {{ .Values.defaults.filesystem | quote }}
+            {{- if .Values.aws.key }}
+            - name: AWS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "monica.fullname" . }}
+                  key: "aws_key"
+            {{- end }}
+            {{- if .Values.aws.secret }}
+            - name: AWS_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "monica.fullname" . }}
+                  key: "aws_secret"
+            {{- end }}
+            {{- if .Values.aws.region }}
+            - name: AWS_REGION
+              value: {{ .Values.aws.region | quote }}
+            {{- end }}
+            {{- if .Values.aws.bucket }}
+            - name: AWS_BUCKET
+              value: {{ .Values.aws.bucket | quote }}
+            {{- end }}
+            {{- if .Values.aws.server }}
+            - name: AWS_SERVER
+              value: {{ .Values.aws.bucket | quote }}
+            {{- end }}
+            - name: MFA_ENABLED
+              value: {{ .Values.mfa_enabled | quote }}
+            - name: DAV_ENABLED
+              value: {{ .Values.dav_enabled | quote }}
+            - name: CARDDAV_ENABLED
+              value: {{ .Values.carddav_enabled | quote }}
+            {{- if .Values.mobile.client_id }}
+            - name: MOBILE_CLIENT_ID
+              value: {{ .Values.mobile.client_id | quote }}
+            {{- end}}
+            {{- if .Values.mobile.client_secret }}
+            - name: MOBILE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "monica.fullname" . }}
+                  key: "mobile_client_secret"
+            {{- end }}
+            - name: ALLOW_STATISTICS_THROUGH_PUBLIC_API_ACCESS
+              value: {{ .Values.allow_statistics_through_public_api_access | quote }}
+            - name: POLICY_COMPLIANT
+              value: {{ .Values.policy_compliant | quote }}
+            {{- if .Values.geolocation.enable }}
+            - name: ENABLE_GEOLOCATION
+              value: {{ .Values.geolocation.enable | quote }}
+            - name: LOCATION_IQ_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "monica.fullname" . }}
+                  key: "location_iq_api_key"
+            {{- end }}
+            {{- if .Values.weather.enable }}
+            - name: ENABLE_WEATHER
+              value: {{ .Values.weather.enable | quote }}
+            - name: DARKSKY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "monica.fullname" . }}
+                  key: "darksky_api_key"
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: http
+            failureThreshold: 6
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            tcpSocket:
+              port: http
+            failureThreshold: 6
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: monica-data
+              mountPath: /var/www/monica/storage
+      volumes:
+        - name: monica-data
+        {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ default (include "monica.fullname" .) .Values.persistence.existingClaim }}
+        {{- else }}
+          emptyDir: {}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
